@@ -1,0 +1,9 @@
+prefix=@prefix@
+libdir=@libdir@
+
+Name: ksvd
+Description:
+Version: @KSVD_VERSION@
+URL: http://github.com/ecrc/ksvd
+Libs: -L${libdir} -lksvd
+Requires: mpi scalapack elpa qdwh

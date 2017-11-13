@@ -3,6 +3,7 @@ file(GLOB tests_files "*.c")
 
 include_directories( ${CMAKE_SOURCE_DIR}/include )
 link_directories( ${CMAKE_BINARY_DIR}/lib )
+link_directories( ${QDWH_DIR}/lib )
 
 # Uses RUNPATH instead of RPATH
 #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--enable-new-dtags")
@@ -18,12 +19,13 @@ foreach( test_src ${tests_files} )
     endif()
 
     add_executable( ${test_exe} testing.c ${test_src}  )
-    add_dependencies( ${test_exe} ${QDWH_LIBNAME} )
+    add_dependencies( ${test_exe} ${KSVD_LIBNAME} )
     if( _build_netlib-scalapack )
         add_dependencies( ${test_exe} NETLIB-SCALAPACK )
     endif()
 
-    target_link_libraries( ${test_exe} ${QDWH_LIBNAME}
+    target_link_libraries( ${test_exe} ${KSVD_LIBNAME}
+                                       qdwh
                                        ${MPI_C_LIBRARIES}
                                        ${ELPA_LIBRARIES}
                                        ${SLTMG_LIBRARIES}
@@ -50,5 +52,3 @@ math( EXPR _pq "${_p} * ${_q}" )
 add_test( NAME "testing_pdgesvd:A" COMMAND mpirun -np ${_pq} testing_pdgesvd --nprow ${_p} --npcol ${_q} --nb 64 --n_range 512:512:512 --niter 3 --check --qwmr )
 add_test( NAME "testing_pdgesvd:B" COMMAND mpirun -np ${_pq} testing_pdgesvd --nprow ${_p} --npcol ${_q} --nb 64 --n_range 512:512:512 --niter 3 --check --qwdc )
 add_test( NAME "testing_pdgesvd:C" COMMAND mpirun -np ${_pq} testing_pdgesvd --nprow ${_p} --npcol ${_q} --nb 64 --n_range 512:512:512 --niter 3 --check --qwel )
-add_test( NAME "testing_pdgeqdwh:A" COMMAND mpirun -np ${_pq} testing_pdgeqdwh --nprow ${_p} --npcol ${_q} --nb 64 --n_range 512:512:512 --niter 3 --check )
-

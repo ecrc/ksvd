@@ -6,25 +6,25 @@ if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
                         "this directory. Example: mkdir build && cd build && cmake ..")
 endif()
 
-project(QDWH Fortran C)
+project(KSVD C Fortran)
 
 #########################
 ### VARIABLES ###########
 #########################
-set( QDWH_LIBNAME qdwh )
-option( QDWH_TESTING "Generates testing binaries" OFF)
+set( KSVD_LIBNAME ksvd )
+option( KSVD_TESTING "Generates testing binaries" OFF)
 option( BUILD_SHARED_LIBS "Generates shared libraries instead of static" OFF)
 option( SHARED_NETLIBSCALAPACK "Build NETLIB-SCALAPACK as shared library." ${BUILD_SHARED_LIBS})
 option( USE_PARALLEL_BLAS "If possible, prefer parallel blas libraries" ON )
 set(EXTRA_LIBS "" CACHE STRING "Additional libraries that may be needed to compile/link" )
 
 # Version
-# Number 1.0.0 is temptative, may differ from actual release.
-SET( QDWH_VERSION_MAJOR 1 )
-SET( QDWH_VERSION_MINOR 0 )
-SET( QDWH_VERSION_PATCH 0 )
-set( QDWH_VERSION "${QDWH_VERSION_MAJOR}.${QDWH_VERSION_MINOR}.${QDWH_VERSION_PATCH}" )
-#execute_process(COMMAND git rev-parse --short HEAD OUTPUT_VARIABLE QDWH_VERSION_RELEASE )
+# Number 0.1.0 is temptative, may differ from actual release.
+SET( KSVD_VERSION_MAJOR 0 )
+SET( KSVD_VERSION_MINOR 1 )
+SET( KSVD_VERSION_PATCH 0 )
+set( KSVD_VERSION "${KSVD_VERSION_MAJOR}.${KSVD_VERSION_MINOR}.${KSVD_VERSION_PATCH}" )
+#execute_process(COMMAND git rev-parse --short HEAD OUTPUT_VARIABLE KSVD_VERSION_RELEASE )
 
 
 # Set the RPATH config
@@ -39,7 +39,7 @@ set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
 
 
 # Packaging (make package)
-SET(CPACK_PACKAGE_VERSION ${QDWH_VERSION})
+SET(CPACK_PACKAGE_VERSION ${KSVD_VERSION})
 SET(CPACK_GENERATOR "TGZ")
 INCLUDE(CPack)
 
@@ -147,7 +147,7 @@ endif( ELPA_FOUND )
 
 
 # SLTMG - look for sltmg (only used for tests )
-if( QDWH_TESTING )
+if( KSVD_TESTING )
     set( SLTMG_LIBRARIES "" CACHE STRING "User provided sltmg library" )
     set( _notfound_msg_ "SLTMG not found, NETLIB-SCALAPACK will be downloaded in order to generate libsltmg.a\n If you want to use your own SLTMG, define SLTMG_LIBRARIES and make sure SCALAPACK is found." )
     if( SLTMG_LIBRARIES )
@@ -164,7 +164,7 @@ if( QDWH_TESTING )
     endif()
 endif()
 
-if( NOT SCALAPACK_FOUND OR ( QDWH_TESTING AND NOT SLTMG_WORKS ) )
+if( NOT SCALAPACK_FOUND OR ( KSVD_TESTING AND NOT SLTMG_WORKS ) )
     # Download NETLIB-SCALAPACK
     set( _build_netlib-scalapack )
     set( NETLIB_SCALAPACK_URL "http://www.netlib.org/scalapack/scalapack-2.0.2.tgz" CACHE STRING "URL to download NETLIB-SCALAPACK project" )
@@ -207,11 +207,11 @@ if( NOT SCALAPACK_FOUND OR ( QDWH_TESTING AND NOT SLTMG_WORKS ) )
 endif()
 
 
-# QDWH code
+# KSVD code
 add_subdirectory(src)
 
 # TESTS
-if( QDWH_TESTING )
+if( KSVD_TESTING )
 
     ## LAPACKE
     find_package(LAPACKE COMPONENTS LAPACKEXT)
@@ -249,6 +249,8 @@ if( QDWH_TESTING )
         #message(FATAL_ERROR "A LAPACKE library is required but has not been found")
     endif()
 
+    set(QDWH_DIR "" CACHE PATH "QDWH installation directory" )
+
     # BUILD TESTS
     enable_testing() # enables ctest
     add_definitions(-DHAVE_GETOPT_LONG)
@@ -261,7 +263,7 @@ endif()
 set(prefix ${CMAKE_INSTALL_PREFIX})
 set(libdir ${CMAKE_INSTALL_PREFIX}/lib)
 set(PKG_CONFIG_DIR ${libdir}/pkgconfig)
-configure_file(${CMAKE_SOURCE_DIR}/qdwh.pc.in ${CMAKE_CURRENT_BINARY_DIR}/qdwh.pc)
-install( FILES ${CMAKE_BINARY_DIR}/qdwh.pc
+configure_file(${CMAKE_SOURCE_DIR}/ksvd.pc.in ${CMAKE_CURRENT_BINARY_DIR}/ksvd.pc)
+install( FILES ${CMAKE_BINARY_DIR}/ksvd.pc
          DESTINATION ${PKG_CONFIG_DIR}
        )
