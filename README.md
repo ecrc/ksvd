@@ -131,6 +131,9 @@ Distributed Systems*, 2017.
 Hardware Accelerators, *ACM Transactions on Mathematical Software*, vol. 43 (1), pp. 1-25, 2016.
 3. D. Sukkari, H. Ltaief and D. Keyes, High Performance Polar Decomposition for SVD
 Solvers on Distributed Memory Systems, Best Papers, Proceedings of the 22nd International Euro-Par Conference, 2016.
+4. Y. Nakatsukasa and N. J. Higham, Stable and Efficient Spectral Divide and Conquer 
+Algorithms for the Symmetric Eigenvalue Decomposition and the SVD, *SIAM Journal on Scientific Computing*,
+vol. 35, no. 3, pp. A1325–A1349, http://epubs.siam.org/doi/abs/10.1137/120876605, 2013.
 
 
 Questions?
