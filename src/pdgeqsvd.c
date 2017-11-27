@@ -121,7 +121,7 @@
  *          Specifies the eigensolver to be used after the polar decomposition:
  *          = 'r': Use PDSYEVR 
  *          = 'd': Use PDSYEVD 
- *          = 'r': Use ELPA-2stage 
+ *          = 'e': Use ELPA-2stage 
  *
  *  M       (global input) INTEGER
  *          The number of rows of the input matrix A.  M >= 0.
@@ -321,12 +321,12 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
         return 0;
     }
 
-    pdgeqdwh( n, n,
+    pdgeqdwh( "H", n, n,
               A, iA, jA, descA, // UP 
               U, iU, jU, descU, // H 
               VT, mloc,
               Work, mlocW,
-              &info);
+              info);
 
     if (eigtype[0] == 'r'){
         pdsyevr_( "V", "A", "L", &n, 
