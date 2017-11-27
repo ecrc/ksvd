@@ -278,14 +278,106 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
     nloc  = numroc_( &n, &nb, &mycol, &i0, &npcol );
     mlocW = numroc_( &MB, &nb, &myrow, &i0, &nprow );
 
-
     double alpha = 1.0, beta = 0.0;
     int lwork_cn, liwork_cn;
 
+    int lmin, limin, lquery;
+    *info = 0; 
+    lquery =  (lWork == -1 || liWork == -1); 
+    int wantU = 0, wantV = 0;
+
    /*
-    * Find Workspace 
+    * Test the input parameters
     */
-    if (lWork  == -1 && liWork == -1){
+
+    if( nprow == -1 ){
+        *info = -(900+ctxt_);
+    }
+    else { 
+        if (jobu[0] == 'V' || jobu[0] == 'v'){
+            wantU = 1;
+        }
+        if (jobvt[0] == 'V' || jobvt[0] == 'v'){
+            wantV = 1;
+        }
+       int i3 = 3, i4 = 4, i5 = 5, i9 = 9, i14 = 14, i18 = 18, i_1 = -1;
+       int *idum1, *idum2;
+       idum1 = (int *)malloc(3*sizeof(int)) ;
+       idum2 = (int *)malloc(3*sizeof(int)) ;
+       chk1mat_(&m, &i4, &n, &i5, &iA, &jA, descA, &i9, info);
+       if (wantU){
+          chk1mat_(&m, &i4, &n, &i5, &iU, &jU, descU, &i14, info);
+       }
+       if (wantV){
+          chk1mat_(&m, &i4, &n, &i5, &iVT, &jVT, descVT, &i18, info);
+       }
+
+       lquery =  (lWork == -1 || liWork == -1); 
+       if (*info == 0){
+           double Anorm = 1., Li = 1.;
+           lwork_cn = -1; liwork_cn = -1;
+
+           lwork_cn  = Work[0];
+           liwork_cn = (int)iWork[0];
+           if (eigtype[0] == 'r') {
+               pdsyevr_( "V", "A", "L", &n, 
+                     U, &iU, &jU, descU, 
+                     &vl, &vu, &il, &iu, &nbeigvals, &nbeigvecs,
+                     S, 
+                     VT, &iVT, &jVT, descVT, 
+                     Work, &lWork, 
+                     iWork, &liWork, info );
+           }   
+           else if (eigtype[0] == 'd') {
+               pdsyevd_( jobvt, "L", &n, 
+                     U, &iU, &jU, descU, 
+                     S, 
+                     VT, &iVT, &jVT, descVT, 
+                     Work, &lWork, 
+                     iWork, &liWork, info );
+           }   
+           lmin  = max ( Work[0], mlocW*nloc);
+           limin = max ( (int)iWork[0], liwork_cn);
+           Work[0]  = lmin;
+           iWork[0] = limin;
+           if( (lWork < lmin) & !lquery ){
+               *info = -20;
+           }
+           if( (liWork < limin) & !lquery ){
+               *info = -22;
+           }
+       }
+       idum1[0] = wantU;
+       idum1[1] = wantV;
+       if( lWork == -1 || liWork == -1) {
+             idum1[2] = -1;
+       }
+       else {
+             idum1[2] =  1;
+       }
+       idum2[0] =  1;
+       idum2[1] =  2;
+       idum2[2] =  22;
+       pchk1mat_( &m, &i4, &n, &i5, &iA, &jA, descA, &i9, &i3, &idum1, &idum2,
+                        info );
+       if ((*info == 0) && wantU){
+          pchk1mat_( &m, &i4, &n, &i5, &iU, &jU, descU, &i14, &i0, &idum1, &idum2,
+                         info );
+       }
+       if ((*info == 0) && wantV){
+          pchk1mat_( &m, &i4, &n, &i5, &iVT, &jVT, descVT, &i18, &i0, &idum1, &idum2,
+                         info );
+       }
+    }
+
+   if( *info != 0 ){
+       pxerbla_( ictxt, "PDGEQSVD", -1*info[0] ); 
+       return 0;
+   }
+    else if ( lquery ){
+       /*
+        * Find Workspace 
+        */
         double Anorm = 1., Li = 1.;
         lwork_cn = -1; liwork_cn = -1;
         //pdgecon_ ("1", &n, U, &iU, &jU, descU, 
@@ -318,6 +410,10 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
         liWork = max ( (int)iWork[0], liwork_cn);
         Work[0]  = lWork;
         iWork[0] = liWork;
+        return 0;
+    }
+    /* Quick return if possible */
+    if ( m == 0 || n == 0 ){
         return 0;
     }
 
