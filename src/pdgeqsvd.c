@@ -238,7 +238,10 @@
  *
  *  INFO    (output) INTEGER
  *          = 0:  successful exit
- *         != 0:  the eigensolver fail
+ *          < 0:  If the i-th argument is an array and the j-entry had
+ *                an illegal value, then INFO = -(i*100+j), if the i-th
+ *                argument is a scalar and had an illegal value, then
+ *                INFO = -i.
  *
  ******************************************************************************/
 
