@@ -260,6 +260,7 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
     int vl, vu, il, iu, nbeigvals, nbeigvecs;
     double flops, GFLOPS;
     flops = 0.0;
+    int iinfo;
 
     int i0 = 0;
     int i1 = 1;
@@ -318,18 +319,18 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
        lquery =  (lWork == -1 || liWork == -1); 
        if (*info == 0){
            double Anorm = 1., Li = 1.;
-           lwork_cn = -1; liwork_cn = -1;
+           //lwork_cn = -1; liwork_cn = -1;
 
-           lwork_cn  = Work[0];
-           liwork_cn = (int)iWork[0];
+           //lwork_cn  = Work[0];
+           liwork_cn = n;//(int)iWork[0];
            if (eigtype[0] == 'r') {
-               pdsyevr_( "V", "A", "L", &n, 
+               pdsyevr_( jobvt, "A", "L", &n, 
                      U, &iU, &jU, descU, 
                      &vl, &vu, &il, &iu, &nbeigvals, &nbeigvecs,
                      S, 
                      VT, &iVT, &jVT, descVT, 
                      Work, &lWork, 
-                     iWork, &liWork, info );
+                     iWork, &liWork, &iinfo );
            }   
            else if (eigtype[0] == 'd') {
                pdsyevd_( jobvt, "L", &n, 
@@ -337,7 +338,7 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
                      S, 
                      VT, &iVT, &jVT, descVT, 
                      Work, &lWork, 
-                     iWork, &liWork, info );
+                     iWork, &liWork, &iinfo );
            }   
            lmin  = max ( Work[0], mlocW*nloc);
            limin = max ( (int)iWork[0], liwork_cn);
@@ -377,28 +378,29 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
        pxerbla_( ictxt, "PDGEQSVD", -1*info[0] ); 
        return 0;
    }
-    else if ( lquery ){
+   else if ( lquery ){
        /*
         * Find Workspace 
         */
         double Anorm = 1., Li = 1.;
         lwork_cn = -1; liwork_cn = -1;
-        //pdgecon_ ("1", &n, U, &iU, &jU, descU, 
-        //          &Anorm, &Li, 
-        //          Work, &lWork, iWork, &liWork, info);
-        //liwork_cn = n;//(int)iWork[0];
+        lWork = -1; liWork = -1;
+        pdgecon_ ("1", &n, U, &iU, &jU, descU, 
+                  &Anorm, &Li, 
+                  Work, &lwork_cn, iWork, &liwork_cn, &iinfo);
+        liwork_cn = n;//(int)iWork[0];
         lwork_cn  = Work[0];
-        liwork_cn = (int)iWork[0];
+        //liwork_cn = (int)iWork[0];
 
 
         if (eigtype[0] == 'r') {
-            pdsyevr_( "V", "A", "L", &n, 
+            pdsyevr_( jobvt, "A", "L", &n, 
                   U, &iU, &jU, descU, 
                   &vl, &vu, &il, &iu, &nbeigvals, &nbeigvecs,
                   S, 
                   VT, &iVT, &jVT, descVT, 
                   Work, &lWork, 
-                  iWork, &liWork, info );
+                  iWork, &liWork, &iinfo );
         }   
         else if (eigtype[0] == 'd') {
             pdsyevd_( jobvt, "L", &n, 
@@ -406,10 +408,11 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
                   S, 
                   VT, &iVT, &jVT, descVT, 
                   Work, &lWork, 
-                  iWork, &liWork, info );
+                  iWork, &liWork, &iinfo );
         }   
         //lWork  = max ( Work[0], lwork_cn);
-        lWork  = max ( Work[0], mlocW*nloc);
+        lWork  =  max(Work[0], mlocW*nloc);
+        lWork  =  max(lWork, lwork_cn);
         liWork = max ( (int)iWork[0], liwork_cn);
         Work[0]  = lWork;
         iWork[0] = liWork;
@@ -425,16 +428,16 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
               U, iU, jU, descU, // H 
               VT, mloc,
               Work, mlocW,
-              info);
+              &iinfo);
 
     if (eigtype[0] == 'r'){
-        pdsyevr_( "V", "A", "L", &n, 
+        pdsyevr_( jobvt, "A", "L", &n, 
                    U, &iU, &jU, descU, 
                    &vl, &vu, &il, &iu, &nbeigvals, &nbeigvecs,
                    S, 
                    VT, &iVT, &jVT, descVT, 
                    Work, &lWork, 
-                   iWork, &liWork, info );
+                   iWork, &liWork, &iinfo );
               
     }
     else if(eigtype[0] == 'd'){
@@ -443,7 +446,7 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
                   S, 
                   VT, &iVT, &jVT, descVT, 
                   Work, &lWork, 
-                  iWork, &liWork, info );
+                  iWork, &liWork, &iinfo );
     }
     else if(eigtype[0] == 'e'){
         Cblacs_gridinfo( ictxt, &nprow, &npcol, &myrow, &mycol );
@@ -461,7 +464,7 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
                                             THIS_REAL_ELPA_KERNEL_API, useQr);
     }
 
-    if(jobu = "V") {
+    if(jobu == "V") {
         pdgemm_( "N", "N", &n, &n, &n, 
                  &alpha, 
                  A, &iA, &jA, descA, 
@@ -469,5 +472,5 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
                  &beta, 
                  U, &iU, &jU, descU);
     }
-    return info[0];
+    return 0;
 }
