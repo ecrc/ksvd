@@ -256,15 +256,11 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
               int    *iWork, int liWork, int *info)
 {
 
-    int verbose = 0; int profqw = 0; int optcond = 0;
-    double flops, GFLOPS;
-    flops = 0.0;
     double vl, vu;
     int il, iu, nbeigvals, nbeigvecs;
     int iinfo;
 
     int i0 = 0;
-    int i1 = 1;
 
     int mloc, nloc, mlocW, nb;   
     int myrow, mycol, nprow, npcol;   
@@ -305,7 +301,7 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
         if (jobvt[0] == 'V' || jobvt[0] == 'v'){
             wantV = 1;
         }
-       int i3 = 3, i4 = 4, i5 = 5, i9 = 9, i14 = 14, i18 = 18, i_1 = -1;
+       int i3 = 3, i4 = 4, i5 = 5, i9 = 9, i14 = 14, i18 = 18;
        int *idum1, *idum2;
        idum1 = (int *)malloc(3*sizeof(int)) ;
        idum2 = (int *)malloc(3*sizeof(int)) ;
@@ -319,7 +315,6 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
 
        lquery =  (lWork == -1 || liWork == -1); 
        if (*info == 0){
-           double Anorm = 1., Li = 1.;
            //lwork_cn = -1; liwork_cn = -1;
 
            //lwork_cn  = Work[0];
