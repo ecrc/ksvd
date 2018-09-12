@@ -358,20 +358,20 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
        idum2[0] =  1;
        idum2[1] =  2;
        idum2[2] =  22;
-       pchk1mat_( &m, &i4, &n, &i5, &iA, &jA, descA, &i9, &i3, &idum1, &idum2,
+       pchk1mat_( &m, &i4, &n, &i5, &iA, &jA, descA, &i9, &i3, idum1, idum2,
                         info );
        if ((*info == 0) && wantU){
-          pchk1mat_( &m, &i4, &n, &i5, &iU, &jU, descU, &i14, &i0, &idum1, &idum2,
+          pchk1mat_( &m, &i4, &n, &i5, &iU, &jU, descU, &i14, &i0, idum1, idum2,
                          info );
        }
        if ((*info == 0) && wantV){
-          pchk1mat_( &m, &i4, &n, &i5, &iVT, &jVT, descVT, &i18, &i0, &idum1, &idum2,
+          pchk1mat_( &m, &i4, &n, &i5, &iVT, &jVT, descVT, &i18, &i0, idum1, idum2,
                          info );
        }
     }
 
    if( *info != 0 ){
-       pxerbla_( ictxt, "PDGEQSVD", -1*info[0] ); 
+       pxerbla_( &ictxt, "PDGEQSVD", &(int){-1*info[0]} ); 
        return 0;
    }
    else if ( lquery ){
