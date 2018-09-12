@@ -139,4 +139,21 @@ extern void pdpotrs_( char *uplo, int *n, int *nrhs, double *a, int *ia, int *ja
 
 extern void pdsymm_(char *side, char *uplo, int *m, int *n, double *alpha, double *a, int *ia, int *ja, int *desca, double *b, int *ib, int *jb, int *descb, double *beta, double *c, int *ic, int *jc, int *descc);
 
+extern void pdgecon_(char *norm, int *n, double *a, int *ia, int *ja,
+  int *desca, double *anorm, double *rcond, double *work, int *lwork,
+  int *iwork, int *liwork, int *info);
+extern void pdsyevr_(char *jobz, char *range, char *uplo, int *n, double *a,
+  int *ia, int *ja, int *desca, double *vl, double *vu, int *il, int *iu,
+  int *m, int *nz, double *w, double *z, int *iz, int *jz, int *descz,
+  double *work, int *lwork, int *iwork, int  *liwork, int *info);
+extern void pdsyevd_(char *jobz, char *uplo, int *n, double *a, int *ia,
+  int *ja, int *desca, double *w, double *z, int *iz, int *jz, int *descz,
+  double *work, int *lwork, int *iwork, int *liwork, int *info);
+extern void chk1mat_(int *ma, int *mapos0, int *na, int *napos0, int *ia,
+  int *ja, int *desca, int *descapos0, int *info);
+extern void pchk1mat_(int *ma, int *mapos0, int *na, int *napos0, int *ia,
+  int *ja, int *desca, int *descapos0, int *nextra, int *ex, int *expos,
+  int *info);
+extern void pxerbla_(int *ictxt, char *srname, int *info);
+
 #endif
