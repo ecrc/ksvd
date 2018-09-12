@@ -460,7 +460,7 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
                                             THIS_REAL_ELPA_KERNEL_API, useQr);
     }
 
-    if(jobu == "V") {
+    if(jobu[0] == 'V') {
         pdgemm_( "N", "N", &n, &n, &n, 
                  &alpha, 
                  A, &iA, &jA, descA, 
