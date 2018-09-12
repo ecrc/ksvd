@@ -257,9 +257,10 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
 {
 
     int verbose = 0; int profqw = 0; int optcond = 0;
-    int vl, vu, il, iu, nbeigvals, nbeigvecs;
     double flops, GFLOPS;
     flops = 0.0;
+    double vl, vu;
+    int il, iu, nbeigvals, nbeigvecs;
     int iinfo;
 
     int i0 = 0;
