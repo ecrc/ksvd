@@ -256,14 +256,11 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
               int    *iWork, int liWork, int *info)
 {
 
-    int verbose = 0; int profqw = 0; int optcond = 0;
-    int vl, vu, il, iu, nbeigvals, nbeigvecs;
-    double flops, GFLOPS;
-    flops = 0.0;
+    double vl, vu;
+    int il, iu, nbeigvals, nbeigvecs;
     int iinfo;
 
     int i0 = 0;
-    int i1 = 1;
 
     int mloc, nloc, mlocW, nb;   
     int myrow, mycol, nprow, npcol;   
@@ -304,7 +301,7 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
         if (jobvt[0] == 'V' || jobvt[0] == 'v'){
             wantV = 1;
         }
-       int i3 = 3, i4 = 4, i5 = 5, i9 = 9, i14 = 14, i18 = 18, i_1 = -1;
+       int i3 = 3, i4 = 4, i5 = 5, i9 = 9, i14 = 14, i18 = 18;
        int *idum1, *idum2;
        idum1 = (int *)malloc(3*sizeof(int)) ;
        idum2 = (int *)malloc(3*sizeof(int)) ;
@@ -318,7 +315,6 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
 
        lquery =  (lWork == -1 || liWork == -1); 
        if (*info == 0){
-           double Anorm = 1., Li = 1.;
            //lwork_cn = -1; liwork_cn = -1;
 
            //lwork_cn  = Work[0];
@@ -362,20 +358,20 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
        idum2[0] =  1;
        idum2[1] =  2;
        idum2[2] =  22;
-       pchk1mat_( &m, &i4, &n, &i5, &iA, &jA, descA, &i9, &i3, &idum1, &idum2,
+       pchk1mat_( &m, &i4, &n, &i5, &iA, &jA, descA, &i9, &i3, idum1, idum2,
                         info );
        if ((*info == 0) && wantU){
-          pchk1mat_( &m, &i4, &n, &i5, &iU, &jU, descU, &i14, &i0, &idum1, &idum2,
+          pchk1mat_( &m, &i4, &n, &i5, &iU, &jU, descU, &i14, &i0, idum1, idum2,
                          info );
        }
        if ((*info == 0) && wantV){
-          pchk1mat_( &m, &i4, &n, &i5, &iVT, &jVT, descVT, &i18, &i0, &idum1, &idum2,
+          pchk1mat_( &m, &i4, &n, &i5, &iVT, &jVT, descVT, &i18, &i0, idum1, idum2,
                          info );
        }
     }
 
    if( *info != 0 ){
-       pxerbla_( ictxt, "PDGEQSVD", -1*info[0] ); 
+       pxerbla_( &ictxt, "PDGEQSVD", &(int){-1*info[0]} ); 
        return 0;
    }
    else if ( lquery ){
@@ -464,7 +460,7 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
                                             THIS_REAL_ELPA_KERNEL_API, useQr);
     }
 
-    if(jobu == "V") {
+    if(jobu[0] == 'V') {
         pdgemm_( "N", "N", &n, &n, &n, 
                  &alpha, 
                  A, &iA, &jA, descA, 
