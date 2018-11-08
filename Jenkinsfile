@@ -41,8 +41,8 @@ pipeline {
                     export I_MPI_F90="$F90"
 
                     # POLAR
-                    wget -q "http://ecrcwiki.kaust.edu.sa:8080/job/ecrcrepo/job/qdwh-dev/job/polar/lastSuccessfulBuild/artifact/build/POLAR-2.0.0-Linux.tar.gz" -O - | tar -zx
-                    POLARDIR=$PWD/POLAR-2.0.0-Linux
+                    wget -q "http://ecrcwiki.kaust.edu.sa:8080/job/ecrcrepo/job/polar/job/master/lastSuccessfulBuild/artifact/build/POLAR-3.0.0-Linux.tar.gz" -O - | tar -zx
+                    POLARDIR=$PWD/POLAR-3.0.0-Linux
 
                     # build
                     mkdir -p build
