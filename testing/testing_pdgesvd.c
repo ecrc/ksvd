@@ -12,15 +12,15 @@
  *  KSVD is a high performance software framework for computing 
  *  a dense SVD on distributed-memory manycore systems provided by KAUST
  *
- * @version 1.0.0
+ * @version 2.0.0
  * @author Dalal Sukkari
  * @author Hatem Ltaief
- * @date 2017-11-13
+ * @date 2018-11-08
  *
  **/
 
 #include <stdlib.h>
-#include "common.h"
+#include "ksvd.h"
 
 /* Default values of parameters */
 int nprow         = 1;
@@ -36,13 +36,14 @@ int start         = 5120;
 int stop          = 5120;
 int step          = 1;
 int niter         = 1;
-int polarsvd     = 0;
+int polarqdwh     = 0;
+int polarzolopd   = 0;
+int polarsvd      = 0;
 int slsvd         = 0;
-int qwmr          = 0;
-int qwdc          = 0;
-int qwel          = 0;
+int ksvdmr          = 0;
+int ksvddc          = 0;
+int ksvdel          = 0;
 int check         = 0;
-int profqw        = 0;
 int verbose       = 0;
 
 
@@ -59,22 +60,22 @@ void print_usage(void)
             " -m      --mode          : [1:6] Mode from pdlatms used to generate the matrix\n"
             " -k      --cond          : Condition number used to generate the matrix\n"
             " -o      --optcond       : Estimate Condition number using QR\n"
-            " -i      --niter         : Number of iterations\n"
-            " -r      --n_range       : Range for matrix sizes Start:Stop:Step\n"
-            " -polarqdwh --polarqdwh  : Find polar decomposition using QDWH A=UH \n"
-            " -polarsvd  --polarsvd   : Find the polar decomposition using scalapack-svd \n"
-            " -s      --slsvd         : Run reference ScaLAPACK SVD\n"
-            " -w      --qwmr          : Run QDWH SVD with ScaLAPACK MRRR EIG\n"
-            " -e      --qwdc          : Run QDWH SVD with ScaLAPACK DC EIG\n"
-            " -l      --qwel          : Run QDWH SVD with ScaLAPACK DC EIG\n"
-            " -c      --check         : Check the solution\n"
-            " -fqwsvd --profqwsvd     : Enable profiling QDWHsvd\n"
-            " -fqw    --profqw        : Enable profiling QDWH\n"
-            " -v      --verbose       : Verbose\n"
-            " -h      --help          : Print this help\n" );
+            " -i      --niter             : Number of iterations\n"
+            " -r      --n_range           : Range for matrix sizes Start:Stop:Step\n"
+            " -polarqdwh --polarqdwh      : Find polar decomposition using QDWH A=UH \n"
+            " -polarzolopd --polarzolopd  : Find polar decomposition using ZOLO-PD A=UH \n"
+            " -polarsvd  --polarsvd       : Find the polar decomposition using scalapack-svd \n"
+            " -s      --slsvd             : Run reference ScaLAPACK SVD\n"
+            " -w      --ksvdmr            : Run KSVD with ScaLAPACK MRRR EIG\n"
+            " -e      --ksvddc            : Run KSVD with ScaLAPACK DC EIG\n"
+            " -l      --ksvdel            : Run KSVD with ScaLAPACK DC EIG\n"
+            " -c      --check             : Check the solution\n"
+            " -fksvd --profksvd           : Enable profiling KSVD\n"
+            " -v      --verbose           : Verbose\n"
+            " -h      --help              : Print this help\n" );
 }
 
-#define GETOPT_STRING "p:q:x:y:n:b:m:i:o:r:Q,S:s:w:e:c:f:t:v:h"
+#define GETOPT_STRING "p:q:x:y:n:b:m:i:o:r:Q,Z,S:s:w:e:c:f:t:v:h"
 
 static struct option long_options[] =
     {
@@ -100,21 +101,20 @@ static struct option long_options[] =
         {"r",          required_argument,  0, 'r'},
         {"n_range",    required_argument,  0, 'r'},
         //{"polar",      no_argument,        0, 'u'},
-        {"polarqdwh",  no_argument,        0, 'Q'},
-        {"polarsvd",   no_argument,        0, 'S'},
-        {"slsvd",      no_argument,        0, 's'},
-        {"qwmr",       no_argument,        0, 'w'},
-        {"qwdc",       no_argument,        0, 'e'},
-        {"qwel",       no_argument,        0, 'l'},
-        {"e",          no_argument,        0, 'c'},
-        {"check",      no_argument,        0, 'c'},
-        {"profqwsvd",  no_argument,        0, 'f'},
-        {"fqwsvd",     no_argument,        0, 'f'},
-        {"profqw",     no_argument,        0, 't'},
-        {"fqw",        no_argument,        0, 't'},
-        {"verbose",    no_argument,        0, 'v'},
-        {"help",       no_argument,        0, 'h'},
-        {"h",          no_argument,        0, 'h'},
+        {"polarqdwh",   no_argument,        0, 'Q'},
+        {"polarzolopd", no_argument,        0, 'Z'},
+        {"polarsvd",    no_argument,        0, 'S'},
+        {"slsvd",       no_argument,        0, 's'},
+        {"ksvdmr",        no_argument,        0, 'w'},
+        {"ksvddc",        no_argument,        0, 'e'},
+        {"ksvdel",        no_argument,        0, 'l'},
+        {"e",           no_argument,        0, 'c'},
+        {"check",       no_argument,        0, 'c'},
+        {"profksvd",   no_argument,        0, 'f'},
+        {"fksvd",      no_argument,        0, 'f'},
+        {"verbose",     no_argument,        0, 'v'},
+        {"help",        no_argument,        0, 'h'},
+        {"h",           no_argument,        0, 'h'},
         {0, 0, 0, 0}
     };
 
@@ -143,15 +143,16 @@ static void parse_arguments(int argc, char** argv)
         case 'm': mode      = atoi(optarg); break;
         case 'k': cond      = atof(optarg); break;
         case 'o': optcond   = atof(optarg); break;
-        case 'S': polarsvd  = 1; break;
-        case 's': slsvd     = 1; break;
-        case 'w': qwmr      = 1; break;
-        case 'e': qwdc      = 1; break;
-        case 'l': qwel      = 1; break;
-        case 'i': niter     = atoi(optarg); break;
+        case 'Q': polarqdwh   = 1; break;
+        case 'Z': polarzolopd = 1; break;
+        case 'S': polarsvd    = 1; break;
+        case 's': slsvd       = 1; break;
+        case 'w': ksvdmr        = 1; break;
+        case 'e': ksvddc        = 1; break;
+        case 'l': ksvdel        = 1; break;
+        case 'i': niter       = atoi(optarg); break;
         case 'r': get_range( optarg, &start, &stop, &step ); break;
         case 'c': check     = 1; break;
-        case 't': profqw    = 1; break;
         case 'v': verbose   = 1; break;
         case 'h':
             if (myrank_mpi == 0) print_usage(); MPI_Finalize(); exit(0);
@@ -190,12 +191,11 @@ int main(int argc, char **argv) {
     double flops, GFLOPS;
 
     double berr = 0.0, my_berr = 0.0, norm_sv;
-    double my_berr_qwmr = 0.0, my_berr_qwdc = 0.0, my_berr_qwel = 0.0;
-    double my_acc_qwmr = 0.0, my_acc_qwdc = 0.0, my_acc_qwel = 0.0, my_acc_slsvd = 0.0;
-    double my_orthR_qwmr = 0.0, my_orthR_qwdc = 0.0, my_orthR_qwel = 0.0, my_orthR_slsvd = 0.0;
-    double my_orthL_qwmr = 0.0, my_orthL_qwdc = 0.0, my_orthL_qwel = 0.0, my_orthL_slsvd = 0.0;
+    double my_berr_ksvdmr = 0.0, my_berr_ksvddc = 0.0, my_berr_ksvdel = 0.0;
+    double my_acc_ksvdmr = 0.0, my_acc_ksvddc = 0.0, my_acc_ksvdel = 0.0, my_acc_slsvd = 0.0;
+    double my_orthR_ksvdmr = 0.0, my_orthR_ksvddc = 0.0, my_orthR_ksvdel = 0.0, my_orthR_slsvd = 0.0;
+    double my_orthL_ksvdmr = 0.0, my_orthL_ksvddc = 0.0, my_orthL_ksvdel = 0.0, my_orthL_slsvd = 0.0;
 
-    double orth_Uqw, berr_UHqw;
     double orth_Usvd, berr_UHsvd, frobA;
 
     int success;
@@ -236,15 +236,18 @@ int main(int argc, char **argv) {
     /* to run only the polar decompsition */
     if(polarsvd )  {slsvd = 0;} 
 
-    if ( qwmr )
+    if ( ksvdmr )
        eigtype = "r";
-    else if (qwdc)
+    else if (ksvddc)
        eigtype = "d";
-    else if (qwel)
+    else if (ksvdel)
        eigtype = "e";
 
     if (verbose & myrank_mpi == 0) fprintf(stderr, "Range loop starts\n");
 
+    if (polarzolopd){
+        setPolarAlgorithm( KSVD_ZOLOPD );
+    }
 
     // Begin loop over range
     for (size = start; size <= stop; size += step) {
@@ -344,7 +347,7 @@ int main(int argc, char **argv) {
         if (myrank_mpi == 0) fprintf(stderr, "/////////////////////////////////////////////////////////////////////////\n");
 
         // QDWH + EIG
-        if ( qwmr || qwdc || qwel ) {
+        if ( ksvdmr || ksvddc || ksvdel ) {
             /*
              * SVD decomposition is (A *U)* S * U' = C * S * U'.
              */
@@ -352,7 +355,7 @@ int main(int argc, char **argv) {
             for (iter = 0; iter < niter; iter++) {
                flops = 0.0;
 
-               if( (qwmr || qwdc || qwel) ){
+               if( (ksvdmr || ksvddc || ksvdel) ){
                    pdlacpy_( "A", &n, &n, A, &i1, &i1, descA, Acpy, &i1, &i1, descAcpy );
                }
 
@@ -437,7 +440,7 @@ int main(int argc, char **argv) {
                            VT, &i1, &i1, descVT, 
                            &beta, 
                            H, &i1, &i1, descH);
-                    my_berr_qwmr = pdlange_ ( "f", &n, &n, H, &i1, &i1, descH, Wloc) / (frobA * n);
+                    my_berr_ksvdmr = pdlange_ ( "f", &n, &n, H, &i1, &i1, descH, Wloc) / (frobA * n);
                         
                    /* 
                     * Accuracy of singular values 
@@ -457,7 +460,7 @@ int main(int argc, char **argv) {
                                Sigma[ (jloc-1)*mloc + (iloc-1) ] = S[i-1];
                           }
                     } 
-                    my_acc_qwmr = pdlange_ ( "f", &n, &n, Sigma, &i1, &i1, descSigma, Wloc) / norm_sv;
+                    my_acc_ksvdmr = pdlange_ ( "f", &n, &n, Sigma, &i1, &i1, descSigma, Wloc) / norm_sv;
 
                    /* 
                     * Orthogonality of Left singular vectors 
@@ -471,7 +474,7 @@ int main(int argc, char **argv) {
                            U, &i1, &i1, descU, 
                            &beta, 
                            Sigma, &i1, &i1, descSigma);
-                    my_orthL_qwmr = pdlange_ ( "f", &n, &n, Sigma, &i1, &i1, descSigma, Wloc)/n;
+                    my_orthL_ksvdmr = pdlange_ ( "f", &n, &n, Sigma, &i1, &i1, descSigma, Wloc)/n;
 
                    /* 
                     * Orthogonality of Right singular vectors 
@@ -485,7 +488,7 @@ int main(int argc, char **argv) {
                            VT, &i1, &i1, descVT, 
                            &beta, 
                            Sigma, &i1, &i1, descSigma);
-                    my_orthR_qwmr = pdlange_ ( "f", &n, &n, Sigma, &i1, &i1, descSigma, Wloc)/n;
+                    my_orthR_ksvdmr = pdlange_ ( "f", &n, &n, Sigma, &i1, &i1, descSigma, Wloc)/n;
 
                     if (verbose & myrank_mpi == 0) fprintf(stderr, "Testing ends...\n");
                     if (  myrank_mpi == 0) {
@@ -494,7 +497,7 @@ int main(int argc, char **argv) {
 	                  fprintf(stderr, "# \tN     \tNB   \tNP   \tP   \tQ   \t\tinfo     \tAcc-sv    \tOrth-Rsv    \tOrth-Lsv     \tBerr  \n");
 	                  fprintf(stderr, "  %6d \t%4d \t%3d \t%3d \t%3d", n, nb, nprocs_mpi, nprow, npcol);
 	                  fprintf(stderr, "\t\t%d \t\t%2.4e \t%2.4e \t%2.4e \t%2.4e \n", 
-                                       info_facto, my_acc_qwmr, my_orthR_qwmr, my_orthL_qwmr, my_berr_qwmr);
+                                       info_facto, my_acc_ksvdmr, my_orthR_ksvdmr, my_orthL_ksvdmr, my_berr_ksvdmr);
                     }
                }
                free(Wloc); free(iWloc);
@@ -732,7 +735,7 @@ int main(int argc, char **argv) {
 	free( U );
 	free( VT );
 	free( S );
-        //if( qwmr || qwdc || qwel )
+        //if( ksvdmr || ksvddc || ksvdel )
         if (verbose & myrank_mpi == 0) fprintf(stderr, "Free matrices done\n");
     } // End loop over range
 

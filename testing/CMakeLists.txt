@@ -3,7 +3,7 @@ file(GLOB tests_files "*.c")
 
 include_directories( ${CMAKE_SOURCE_DIR}/include )
 link_directories( ${CMAKE_BINARY_DIR}/lib )
-link_directories( ${QDWH_DIR}/lib )
+link_directories( ${POLAR_DIR}/lib )
 
 # Uses RUNPATH instead of RPATH
 #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--enable-new-dtags")
@@ -24,8 +24,7 @@ foreach( test_src ${tests_files} )
         add_dependencies( ${test_exe} NETLIB-SCALAPACK )
     endif()
 
-    target_link_libraries( ${test_exe} ${KSVD_LIBNAME}
-                                       qdwh
+    target_link_libraries( ${test_exe} ${KSVD_LIBNAME} polar
                                        ${MPI_C_LIBRARIES}
                                        ${ELPA_LIBRARIES}
                                        ${SLTMG_LIBRARIES}
@@ -36,19 +35,14 @@ foreach( test_src ${tests_files} )
                                        ${EXTRA_LIBS} )
     install( TARGETS ${test_exe} DESTINATION lib/testing )
 endforeach()
-if( ${NUMBER_OF_CPU} LESS 4 )
-    set( _p 1 )
-    set( _q 1 )
-elseif( ${NUMBER_OF_CPU} LESS 16 )
-    set( _p 2 )
-    set( _q 2 )
-else()
-    set( _p 4 )
-    set( _q 4 )
-endif()
+set( _p 4 )
+set( _q 4 )
 math( EXPR _pq "${_p} * ${_q}" )
 
 # Add basic tests. To run them type: 'make test' in build directory
-add_test( NAME "testing_pdgesvd:A" COMMAND mpirun -np ${_pq} testing_pdgesvd --nprow ${_p} --npcol ${_q} --nb 64 --n_range 512:512:512 --niter 3 --check --qwmr )
-add_test( NAME "testing_pdgesvd:B" COMMAND mpirun -np ${_pq} testing_pdgesvd --nprow ${_p} --npcol ${_q} --nb 64 --n_range 512:512:512 --niter 3 --check --qwdc )
-add_test( NAME "testing_pdgesvd:C" COMMAND mpirun -np ${_pq} testing_pdgesvd --nprow ${_p} --npcol ${_q} --nb 64 --n_range 512:512:512 --niter 3 --check --qwel )
+add_test( NAME "testing_pdgesvd:QDWH-MR" COMMAND mpirun -np ${_pq} ./testing_pdgesvd --nprow ${_p} --npcol ${_q} --nb 64 --n_range 512:512:512 --niter 3 --check --ksvdmr --polarqdwh )
+add_test( NAME "testing_pdgesvd:QDWH-DC" COMMAND mpirun -np ${_pq} ./testing_pdgesvd --nprow ${_p} --npcol ${_q} --nb 64 --n_range 512:512:512 --niter 3 --check --ksvddc --polarqdwh )
+add_test( NAME "testing_pdgesvd:QDWH-EL" COMMAND mpirun -np ${_pq} ./testing_pdgesvd --nprow ${_p} --npcol ${_q} --nb 64 --n_range 512:512:512 --niter 3 --check --ksvdel )
+add_test( NAME "testing_pdgesvd:ZOLOPD-MR" COMMAND mpirun -np ${_pq} ./testing_pdgesvd --nprow ${_p} --npcol ${_q} --nb 64 --n_range 512:512:512 --niter 3 --check --ksvdmr --polarzolopd )
+add_test( NAME "testing_pdgesvd:ZOLOPD-DC" COMMAND mpirun -np ${_pq} ./testing_pdgesvd --nprow ${_p} --npcol ${_q} --nb 64 --n_range 512:512:512 --niter 3 --check --ksvddc --polarzolopd )
+add_test( NAME "testing_pdgesvd:ZOLOPD-EL" COMMAND mpirun -np ${_pq} ./testing_pdgesvd --nprow ${_p} --npcol ${_q} --nb 64 --n_range 512:512:512 --niter 3 --check --ksvdel --polarzolopd )

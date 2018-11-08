@@ -12,14 +12,14 @@
  *  KSVD is a high performance software framework for computing 
  *  a dense SVD on distributed-memory manycore systems provided by KAUST
  *
- * @version 1.0.0
+ * @version 2.0.0
  * @author Dalal Sukkari
  * @author Hatem Ltaief
- * @date 2017-11-13
+ * @date 2018-11-08
  *
  **/
 
-#include "common.h"
+#include "ksvd.h"
 
 #ifndef max
 #define max(a, b) ((a) > (b) ? (a) : (b))
@@ -27,6 +27,9 @@
 #ifndef min
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #endif
+
+
+static int polar_algo = KSVD_QDWH;
 
  /*******************************************************************************
  *  .. Scalar Arguments ..
@@ -267,6 +270,12 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
     int ctxt_ = 1, nb_ = 5;
     int ictxt;
     int MB = 2*n; 
+
+    int lWork1, lWork2;
+    double *Wloc1  = (double *)calloc(1,sizeof(double)) ;
+    double *Wloc2  = (double *)calloc(1,sizeof(double)) ;
+    lWork1 = -1; 
+    lWork2 = -1; 
            
     /*
      * Get the grid parameters
@@ -419,12 +428,37 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
         return 0;
     }
 
-    pdgeqdwh( "H", n, n,
-              A, iA, jA, descA, // UP 
-              U, iU, jU, descU, // H 
+
+    switch(polar_algo) {
+        case KSVD_ZOLOPD:
+            /* Find size of the Wloc */
+            pdgezolopd( "H", n, n,
+              A, iA, jA, descA, // UP
+              U, iU, jU, descU, // H
+              Wloc1, lWork1,
+              Wloc2, lWork2,
+              &iinfo);
+
+        lWork1 = Wloc1[0];
+        lWork2 = Wloc2[0];
+
+	Wloc2  = (double *)malloc((lWork2*nloc)*sizeof(double));
+            pdgezolopd( "H", n, n,
+              A, iA, jA, descA, // UP
+              U, iU, jU, descU, // H
+              VT, mloc,
+              Wloc2, lWork2,
+              &iinfo);
+        break;
+        case KSVD_QDWH:
+        default:
+            pdgeqdwh( "H", n, n,
+              A, iA, jA, descA, // UP
+              U, iU, jU, descU, // H
               VT, mloc,
               Work, mlocW,
               &iinfo);
+    }
 
     if (eigtype[0] == 'r'){
         pdsyevr_( jobvt, "A", "L", &n, 
@@ -468,5 +502,19 @@ int pdgeqsvd( char *jobu, char *jobvt, char *eigtype,
                  &beta, 
                  U, &iU, &jU, descU);
     }
+    switch(polar_algo) {
+        case KSVD_ZOLOPD:
+           free (Wloc2);
+    }
     return 0;
+}
+
+int getPolarAlgorithm(  ) {
+    return polar_algo;
+}
+
+int setPolarAlgorithm( int a ) {
+    if( a <= POLAR_ALGORITHM_START || a >= POLAR_ALGORITHM_END ) return -1;
+    polar_algo = a;
+    return polar_algo;
 }

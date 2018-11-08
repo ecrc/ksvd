@@ -6,8 +6,8 @@ pipeline {
 // agent any
 //// By agent label:
 //      agent { label 'sandybridge' }
-
-    agent { label 'jenkinsfile' }
+    // no agents, each stage must declare it
+    agent none
     triggers {
         pollSCM('H/10 * * * *')
     }
@@ -19,32 +19,37 @@ pipeline {
     }
 
     stages {
-        stage ('build') {
+        stage ('polar-build') {
+            agent { label "jenkinsfile" }
             steps {
                 sh '''#!/bin/bash -le
                     # loads modules
                     module purge
-                    module load old-modules
-                    module load intel/15
-                    module load mpi-impi/5.0.1-intel-15
-                    module load spack/git-morse-modules
-                    module load cmake-3.5.2-gcc-4.8.5-6kea3zp
-                    module load elpa/2015.11.001-intel-15
+                    module load cmake/3.9.6
+                    module load intel/2017
+                    module load intelmpi/2017/intel-2017
+                    module load elpa/2015.11.001-intel-2017
 
                     set -x
                     module list
 
-                    # QDWH
-                    wget -q "http://ecrcwiki.kaust.edu.sa:8080/job/ecrcrepo/job/qdwh-dev/job/master/lastSuccessfulBuild/artifact/build/QDWH-2.0.0-Linux.tar.gz"
-                    tar -zxf QDWH-2.0.0-Linux.tar.gz
-                    QDWHDIR=$PWD/QDWH-2.0.0-Linux
+                    export CC=icc # just in case
+                    export FC=ifort # just in case
+                    export F90=ifort # just in case
+                    export I_MPI_CC="$CC"
+                    export I_MPI_FC="$FC"
+                    export I_MPI_F90="$F90"
+
+                    # POLAR
+                    wget -q "http://ecrcwiki.kaust.edu.sa:8080/job/ecrcrepo/job/qdwh-dev/job/polar/lastSuccessfulBuild/artifact/build/POLAR-2.0.0-Linux.tar.gz" -O - | tar -zx
+                    POLARDIR=$PWD/POLAR-2.0.0-Linux
 
                     # build
                     mkdir -p build
                     cd build && rm -rf ./*
                     export I_MPI_CC="icc"
                     export I_MPI_F90="ifort"
-                    cmake .. -DCMAKE_INSTALL_PREFIX=$PWD/installdir -DKSVD_TESTING:BOOL=ON -DEXTRA_LIBS="ifcore" -DQDWH_DIR=$QDWHDIR
+                    cmake .. -DCMAKE_INSTALL_PREFIX=$PWD/installdir -DKSVD_TESTING:BOOL=ON -DEXTRA_LIBS="ifcore" -DPOLAR_DIR=$POLARDIR
 
                     # build
                     make
@@ -53,29 +58,28 @@ pipeline {
                     make install
 
                 '''
+                stash name: "build-polar", includes: "build/**"
             }
         }
-        stage ('test') {
+        stage ('polar-test') {
+            agent { label "jenkinsfile" }
             steps {
+                unstash 'build-polar'
                 sh '''#!/bin/bash -le
                     # loads modules
                     module purge
-                    module load old-modules
-                    module load intel/15
-                    module load mpi-impi/5.0.1-intel-15
-                    module load elpa/2015.11.001-intel-15
+                    module load cmake/3.9.6
+                    module load intel/2017
+                    module load intelmpi/2017/intel-2017
+                    module load elpa/2015.11.001-intel-2017
 
                     set -x
-
                     module list
 
                     # Delete previous CTest results and run tests
                     rm -rf $WORKSPACE/build/Testing
                     cd $WORKSPACE/build
-                    # need to fix the tests
-                    sed -i s/:512:/:2048:/ testing/CTestTestfile.cmake
-                    sed -i s/:512:/:2048:/ timing/CTestTestfile.cmake
-                    export PATH=$PATH:. 
+                    export PATH=$PATH:.
                     ctest --no-compress-output -T Test
                 '''
             }

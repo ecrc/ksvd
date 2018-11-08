@@ -12,14 +12,14 @@
  *  KSVD is a high performance software framework for computing 
  *  a dense SVD on distributed-memory manycore systems provided by KAUST
  *
- * @version 1.0.0
+ * @version 2.0.0
  * @author Dalal Sukkari
  * @author Hatem Ltaief
- * @date 2017-11-13
+ * @date 2018-11-08
  *
  **/
 
-#include "common.h"
+#include "ksvd.h"
 
 int
 get_range(char *range, int *start_p, int *stop_p, int *step_p) {

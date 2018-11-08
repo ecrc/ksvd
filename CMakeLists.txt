@@ -8,6 +8,9 @@ endif()
 
 project(KSVD C Fortran)
 
+find_package(Doxygen)
+add_subdirectory("docs")
+
 #########################
 ### VARIABLES ###########
 #########################
@@ -19,9 +22,8 @@ option( USE_PARALLEL_BLAS "If possible, prefer parallel blas libraries" ON )
 set(EXTRA_LIBS "" CACHE STRING "Additional libraries that may be needed to compile/link" )
 
 # Version
-# Number 0.1.0 is temptative, may differ from actual release.
-SET( KSVD_VERSION_MAJOR 0 )
-SET( KSVD_VERSION_MINOR 1 )
+SET( KSVD_VERSION_MAJOR 2 )
+SET( KSVD_VERSION_MINOR 0 )
 SET( KSVD_VERSION_PATCH 0 )
 set( KSVD_VERSION "${KSVD_VERSION_MAJOR}.${KSVD_VERSION_MINOR}.${KSVD_VERSION_PATCH}" )
 #execute_process(COMMAND git rev-parse --short HEAD OUTPUT_VARIABLE KSVD_VERSION_RELEASE )
@@ -207,9 +209,6 @@ if( NOT SCALAPACK_FOUND OR ( KSVD_TESTING AND NOT SLTMG_WORKS ) )
 endif()
 
 
-# KSVD code
-add_subdirectory(src)
-
 # TESTS
 if( KSVD_TESTING )
 
@@ -249,7 +248,11 @@ if( KSVD_TESTING )
         #message(FATAL_ERROR "A LAPACKE library is required but has not been found")
     endif()
 
-    set(QDWH_DIR "" CACHE PATH "QDWH installation directory" )
+    ## Backend options
+    set(POLAR_DIR "" CACHE PATH "POLAR installation directory" )
+    #add_library( polar STATIC IMPORTED )
+    #set_target_properties( polar PROPERTIES IMPORTED_LOCATION ${POLAR_DIR}/lib/libpolar.a )
+    link_directories( ${POLAR_DIR}/lib/ )
 
     # BUILD TESTS
     enable_testing() # enables ctest
@@ -257,6 +260,11 @@ if( KSVD_TESTING )
     add_subdirectory(testing)
     add_subdirectory(timing)
 endif()
+
+# KSVD code
+add_subdirectory(src)
+
+install( FILES ${CMAKE_SOURCE_DIR}/include/ksvd.h DESTINATION include )
 
 
 # PKGCONFIG
